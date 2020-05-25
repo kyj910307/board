@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.shoppingmall.user.service.impl.UserBoardDAO">
+	<!-- 게시글 전체목록 -->
+	<select id="SelectUserBoardContent" resultType="com.shoppingmall.user.vo.UserBoardVO" parameterType="java.util.HashMap">
+        SELECT
+            TOTAL.ID,
+            TOTAL.SUBJECT,
+            TOTAL.CONTENT,
+            TOTAL.WRITER,
+            TOTAL.REGISTER_DATETIME
+        FROM
+            (SELECT
+                ROWNUM RN, A.*
+            FROM
+                (SELECT
+                    ID,
+                    SUBJECT,
+                    CONTENT,
+                    WRITER,
+                    TO_CHAR(REGISTER_DATETIME, 'YYYY-MM-DD HH24:mi:ss') AS REGISTER_DATETIME
+                FROM
+                    TB_USER_BOARD
+            ORDER BY ID DESC) A) TOTAL
+        WHERE
+            TOTAL.RN &gt; #{start} AND TOTAL.RN &lt;= #{end}
+    </select>
+    
+	<!-- 게시글 전체갯수 -->
+	<select id="SelectUserBoardCnt" resultType="int" parameterType="java.util.HashMap">
+        SELECT
+            COUNT(id)
+        FROM
+            TB_USER_BOARD
+    </select>
+    
+    <!-- 게시글상세보기 -->
+    <select id="SelectUserBoardGetContent" resultType="com.shoppingmall.user.vo.UserBoardVO" parameterType="java.util.HashMap">
+        SELECT
+            ID,
+            SUBJECT,
+            CONTENT,
+            WRITER,
+            TO_CHAR(REGISTER_DATETIME, 'YYYY-MM-DD HH24:mi:ss') REGISTER_DATETIME
+        FROM
+            TB_USER_BOARD
+        WHERE
+            ID = #{id}
+    </select>
+    
+    <!-- 게시글등록 -->
+    <insert id="insertUserBoardContent" parameterType="java.util.HashMap">
+        INSERT INTO TB_USER_BOARD(
+            ID,
+            SUBJECT,
+            CONTENT,
+            WRITER,
+            PASSWORD
+        )values(
+            board_seq.nextval,
+            #{subject},
+            #{content},
+            #{writer},
+            #{password}
+        )
+    </insert>
+    
+    <!-- 게시글수정 -->
+    <update id="updateUserBoardContent" parameterType="java.util.HashMap">
+        UPDATE
+            TB_USER_BOARD
+        SET
+            SUBJECT = #{subject},
+            CONTENT = #{content},
+            WRITER = #{writer},
+            PASSWORD = #{password}
+        WHERE
+            ID = #{id}
+    </update>
+    
+    <!-- 게시글삭제 -->
+    <delete id="userBoardContentDel" parameterType="java.util.HashMap">
+        DELETE
+        FROM
+            TB_USER_BOARD
+        WHERE
+            ID = #{id}
+        AND PASSWORD = #{password}
+    </delete>
+    
+    <!-- 비밀번호체크 -->
+    <select id="userBoardPasswordCheck" resultType="int" parameterType="java.util.HashMap">
+        SELECT
+            count(id)
+        FROM
+            TB_USER_BOARD
+        WHERE
+            ID = #{id}
+        AND PASSWORD = #{password}
+    </select>
+    
+    <!-- 댓글 등록 -->
+    <insert id="userBoardRegReply" parameterType="java.util.HashMap">
+        <selectKey keyProperty="reply_id" resultType="int" order="BEFORE">
+          SELECT REPLY_SEQ.NEXTVAL FROM DUAL
+        </selectKey>
+        INSERT INTO TB_USER_BOARD_REPLY(
+            REPLY_ID,
+            BOARD_ID,
+            PARENT_ID,
+            DEPTH,
+            REPLY_CONTENT,
+            REPLY_WRITER,
+            REPLY_PASSWORD
+        )VALUES(
+            #{reply_id},
+            #{board_id},
+            #{parent_id},
+            #{depth},
+            #{reply_content},
+            #{reply_writer},
+            #{reply_password}
+        )
+    </insert>
+    
+    <!-- 댓글목록 -->
+    <select id="getUserBoardReplyList" resultType="com.shoppingmall.user.vo.UserBoardReplyVO" parameterType="java.util.HashMap">
+        SELECT
+            REPLY_ID,
+            BOARD_ID,
+            PARENT_ID,
+            DEPTH,
+            REPLY_CONTENT,
+            REPLY_WRITER,
+            REPLY_PASSWORD
+        FROM
+            TB_USER_BOARD_REPLY
+        WHERE
+            BOARD_ID = #{id}
+        ORDER BY REPLY_ID ASC
+    </select>
+    
+    <!-- 댓글삭제 -->
+    <delete id="boardReplyDel" parameterType="java.util.HashMap">
+        DELETE
+        FROM
+            TB_USER_BOARD_REPLY
+        WHERE
+            REPLY_ID = #{reply_id}
+            AND REPLY_PASSWORD = #{reply_password}
+    </delete>
+    
+    <!-- 댓글전체삭제 -->
+    <delete id="boardReplyDelAll" parameterType="java.util.HashMap">
+        DELETE
+        FROM
+            TB_USER_BOARD_REPLY
+        WHERE
+            REPLY_ID IN (
+                SELECT
+                    REPLY_ID
+                FROM
+                    TB_USER_BOARD_REPLY
+                WHERE
+                    REPLY_ID = #{reply_id}
+                    and REPLY_PASSWORD = #{reply_password}
+            ) OR PARENT_ID in (
+                SELECT
+                    REPLY_ID
+                FROM
+                    TB_USER_BOARD_REPLY
+                WHERE
+                    REPLY_ID = #{reply_id}
+                AND REPLY_PASSWORD = #{reply_password}
+            )
+    </delete>
+    
+    <!-- 댓글비밀번호확인 -->
+    <select id="userBoardReplyPasswordCheck" resultType="int" parameterType="java.util.HashMap">
+        SELECT
+            COUNT(*)
+        FROM
+            TB_USER_BOARD_REPLY
+        WHERE
+            REPLY_ID = #{reply_id}
+        AND REPLY_PASSWORD = #{reply_password}
+    </select>
+    
+    <!-- 댓글수정 -->
+    <update id="userBoardReplyUpdate" parameterType="java.util.HashMap">
+        UPDATE
+            TB_USER_BOARD_REPLY
+        SET
+            PARENT_ID = #{parent_id},
+            DEPTH = #{depth},
+            REPLY_CONTENT = #{reply_content},
+            REPLY_WRITER = #{reply_writer},
+            REPLY_PASSWORD = #{reply_password}
+        WHERE
+            REPLY_ID = #{reply_id}
+    </update>
+    
+</mapper>
